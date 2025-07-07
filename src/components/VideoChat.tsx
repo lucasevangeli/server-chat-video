@@ -34,7 +34,7 @@ export const VideoChat: React.FC = () => {
   useEffect(() => {
     const testBackendConnection = async () => {
       try {
-        const backendURL = import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin;
+        const backendURL = import.meta.env.PROD ? 'https://chat-video-x41m.onrender.com' : 'http://localhost:3001';
         const response = await fetch(`${backendURL}/api/health`);
         if (response.ok) {
           const data = await response.json();
