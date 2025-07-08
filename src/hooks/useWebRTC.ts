@@ -60,7 +60,7 @@ export const useWebRTC = () => {
   });
 
   // Function to get backend URL based on environment
-  const getBackendURL = () => import.meta.env.PROD ? 'https://chat-video-x41m.onrender.com' : 'http://localhost:3001';
+  const getBackendURL = () => import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin;
 
   // Cleanup function to reset the entire connection state
   const cleanupConnection = useCallback((isSkipping = false) => {
