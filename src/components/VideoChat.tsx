@@ -116,7 +116,7 @@ export const VideoChat: React.FC = () => {
                   <h4 className="text-red-300 font-medium mb-2">🔧 Troubleshooting:</h4>
                   <ol className="text-red-300 text-xs space-y-1 list-decimal list-inside">
                     <li>Verifique se o servidor está rodando: <code className="bg-red-500/20 px-1 rounded">npm run server</code></li>
-                    <li>Teste a API: <a href="http://localhost:3001/api/health" target="_blank" rel="noopener noreferrer" className="underline">http://localhost:3001/api/health</a></li>
+                    <li>Teste a API: <a href="https://server-video-zu9n.onrender.com/api/health" target="_blank" rel="noopener noreferrer" className="underline">https://server-video-zu9n.onrender.com/api/health</a></li>
                     <li>Para teste em rede: <code className="bg-red-500/20 px-1 rounded">ngrok http 3001</code></li>
                     <li>Use a URL do ngrok em dispositivos diferentes</li>
                   </ol>

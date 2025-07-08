@@ -60,7 +60,7 @@ export const useWebRTC = () => {
   });
 
   // Function to get backend URL based on environment
-  const getBackendURL = () => import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin;
+  const getBackendURL = () => 'https://server-video-zu9n.onrender.com/';
 
   // Cleanup function to reset the entire connection state
   const cleanupConnection = useCallback((isSkipping = false) => {
