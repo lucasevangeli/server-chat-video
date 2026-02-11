@@ -23,14 +23,31 @@ interface MediaState {
   isLoading: boolean;
 }
 
-// WebRTC configuration using public STUN servers
+// WebRTC configuration
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [
+    // Default public STUN servers
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' },
   ],
 };
+
+// Dynamically add TURN server credentials from environment variables
+const turnUrl = import.meta.env.VITE_TURN_URL;
+const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
+
+if (turnUrl && turnUsername && turnCredential) {
+  console.log('Found TURN server configuration. Adding to ICE servers.');
+  RTC_CONFIG.iceServers.push({
+    urls: turnUrl,
+    username: turnUsername,
+    credential: turnCredential,
+  });
+  // The 'relay' policy forces the connection to go through the TURN server.
+  // This is useful for testing the TURN server. For production, 'all' is recommended.
+  // RTC_CONFIG.iceTransportPolicy = 'relay';
+}
 
 // Custom hook for the WebRTC logic
 export const useWebRTC = () => {
@@ -60,7 +77,10 @@ export const useWebRTC = () => {
   });
 
   // Function to get backend URL based on environment
-  const getBackendURL = () => 'https://server-video-zu9n.onrender.com/';
+  const getBackendURL = () => {
+    // Vite exposes env variables through import.meta.env
+    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+  };
 
   // Cleanup function to reset the entire connection state
   const cleanupConnection = useCallback((isSkipping = false) => {

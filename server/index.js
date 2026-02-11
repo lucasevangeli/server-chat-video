@@ -7,10 +7,27 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 
+// Define allowed origins for CORS
+const allowedOrigins = [
+  "http://localhost:5173", // Vite dev server
+  "http://localhost:3001", // Server itself
+  /\.ngrok\.io$/,         // ngrok tunnels
+  /\.ngrok-free\.app$/,    // ngrok tunnels
+];
+
+// Add client URL(s) from environment variables if they exist
+const clientUrlEnv = process.env.CLIENT_URL;
+if (clientUrlEnv) {
+  // Split by comma to support multiple URLs
+  const clientUrls = clientUrlEnv.split(',').map(url => url.trim());
+  allowedOrigins.push(...clientUrls);
+  console.log(`✅ Added client URLs to CORS origins: ${clientUrls.join(', ')}`);
+}
+
 // Configure CORS for Socket.IO
 const io = socketIo(server, {
   cors: {
-    origin: ["http://localhost:5173", "http://localhost:3001", /\.ngrok\.io$/, /\.ngrok-free\.app$/],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -20,7 +37,7 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:5173", "http://localhost:3001", /\.ngrok\.io$/, /\.ngrok-free\.app$/],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());

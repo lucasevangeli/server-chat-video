@@ -1,0 +1,15 @@
+# Ignora as dependências, que serão instaladas dentro do container
+node_modules
+server/node_modules
+
+# Ignora a pasta de build do front-end, que é gerada no container
+dist
+
+# Ignora configurações do Git, Docker e arquivos de ambiente
+.git
+.gitignore
+Dockerfile
+.env
+.env.*
+server/.env
+README.md
