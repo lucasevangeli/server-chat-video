@@ -51,6 +51,51 @@ const activeRooms = new Map();
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
+// Reusable matchmaking function
+function findAndCreateMatch(socket, excludedId = null) {
+  const currentUser = connectedUsers.get(socket.id);
+  if (!currentUser) {
+    socket.emit('error', { message: 'User not found' });
+    return;
+  }
+
+  let partnerId = null;
+  // Find a suitable partner from the waiting list
+  for (const waitingUserId of waitingUsers) {
+    if (waitingUserId !== socket.id && waitingUserId !== excludedId) {
+      partnerId = waitingUserId;
+      break;
+    }
+  }
+  
+  const partnerUser = partnerId ? connectedUsers.get(partnerId) : null;
+
+  if (partnerUser) {
+    // Match found
+    waitingUsers.delete(partnerId);
+    
+    const roomId = generateId();
+    const room = { id: roomId, users: [currentUser, partnerUser], createdAt: new Date() };
+    activeRooms.set(roomId, room);
+    
+    const partnerSocket = io.sockets.sockets.get(partnerId);
+    
+    socket.join(roomId);
+    partnerSocket?.join(roomId);
+    
+    console.log(`🎉 Match found! Room ${roomId}: ${currentUser.name} + ${partnerUser.name}`);
+    
+    // Notify both users with their respective partner's info
+    io.to(socket.id).emit('match-found', { roomId, users: room.users, partner: partnerUser });
+    io.to(partnerId).emit('match-found', { roomId, users: room.users, partner: currentUser });
+  } else {
+    // No match found, add user to waiting list
+    waitingUsers.add(socket.id);
+    socket.emit('waiting-for-match');
+    console.log(`⏳ ${currentUser.name} added to waiting list`);
+  }
+}
+
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log(`🔌 User connected: ${socket.id}`);
@@ -76,50 +121,9 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: 'User not found' });
       return;
     }
-
     console.log(`🔍 ${currentUser.name} is looking for a chat...`);
-
-    // Check if there's someone waiting
-    if (waitingUsers.size > 0) {
-      // Get the first waiting user
-      const waitingUserId = waitingUsers.values().next().value;
-      const waitingUser = connectedUsers.get(waitingUserId);
-      
-      if (waitingUser && waitingUserId !== socket.id) {
-        // Remove from waiting list
-        waitingUsers.delete(waitingUserId);
-        
-        // Create a room
-        const roomId = generateId();
-        const room = {
-          id: roomId,
-          users: [currentUser, waitingUser],
-          createdAt: new Date()
-        };
-        
-        activeRooms.set(roomId, room);
-        
-        // Join both users to the room
-        socket.join(roomId);
-        io.sockets.sockets.get(waitingUserId)?.join(roomId);
-        
-        console.log(`🎉 Match found! Room ${roomId}: ${currentUser.name} + ${waitingUser.name}`);
-        
-        // Notify both users
-        io.to(roomId).emit('match-found', {
-          roomId,
-          users: room.users,
-          partner: socket.id === currentUser.id ? waitingUser : currentUser
-        });
-        
-        return;
-      }
-    }
-
-    // No one waiting, add to waiting list
-    waitingUsers.add(socket.id);
-    socket.emit('waiting-for-match');
-    console.log(`⏳ ${currentUser.name} added to waiting list`);
+    // Simple case: find any match
+    findAndCreateMatch(socket);
   });
 
   // WebRTC signaling
@@ -152,26 +156,38 @@ io.on('connection', (socket) => {
     const { roomId } = data;
     const room = activeRooms.get(roomId);
     
-    if (room) {
-      console.log(`⏭️ User ${socket.id} skipped chat in room ${roomId}`);
-      
-      // Notify the other user
-      socket.to(roomId).emit('partner-skipped');
-      
-      // Leave the room
-      socket.leave(roomId);
-      
-      // Remove room if empty or clean up
-      const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
-      if (!socketsInRoom || socketsInRoom.size === 0) {
-        activeRooms.delete(roomId);
-        console.log(`🗑️ Room ${roomId} deleted`);
+    if (!room) {
+      // The room is already gone. Maybe the partner skipped at the same time.
+      // Just try to find a new match for this user.
+      console.log(`🤷‍♀️ Room ${roomId} not found for skip-chat, finding new match for ${socket.id}`);
+      findAndCreateMatch(socket);
+      return;
+    }
+
+    console.log(`⏭️ User ${socket.id} skipped chat in room ${roomId}`);
+    
+    const partner = room.users.find(user => user.id !== socket.id);
+    
+    // Notify the other user that the chat was skipped
+    if (partner) {
+      const partnerSocket = io.sockets.sockets.get(partner.id);
+      if (partnerSocket) {
+        // Just notify, the client will then request a new chat
+        partnerSocket.to(roomId).emit('partner-skipped');
+        partnerSocket.leave(roomId);
       }
     }
     
-    // Add back to waiting list
-    waitingUsers.add(socket.id);
-    socket.emit('waiting-for-match');
+    // The skipper leaves the room
+    socket.leave(roomId);
+    
+    // The room is now empty of at least one user, let's clean it up
+    activeRooms.delete(roomId);
+    console.log(`🗑️ Room ${roomId} deleted`);
+    
+    // For the user who skipped, immediately try to find a new match,
+    // explicitly excluding the partner they just left.
+    findAndCreateMatch(socket, partner ? partner.id : null);
   });
 
   // End chat

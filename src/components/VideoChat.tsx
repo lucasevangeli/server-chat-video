@@ -34,7 +34,7 @@ export const VideoChat: React.FC = () => {
   useEffect(() => {
     const testBackendConnection = async () => {
       try {
-        const backendURL = import.meta.env.DEV ? 'http://localhost:3001' : window.location.origin;
+        const backendURL = import.meta.env.VITE_BACKEND_URL;
         const response = await fetch(`${backendURL}/api/health`);
         if (response.ok) {
           const data = await response.json();
@@ -60,8 +60,7 @@ export const VideoChat: React.FC = () => {
               <Globe className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">WebRTC Video Chat</h1>
-              <p className="text-sm text-gray-300">Native peer-to-peer video calling</p>
+              <h1 className="text-xl font-bold text-white">Omegga Chat</h1>
             </div>
           </div>
           
@@ -70,14 +69,14 @@ export const VideoChat: React.FC = () => {
             {isConnected && (
               <div className="flex items-center space-x-2 text-green-400">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium">Connected</span>
+                <span className="text-sm font-medium">Conectado</span>
               </div>
             )}
             
             {isWaiting && (
               <div className="flex items-center space-x-2 text-yellow-400">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm font-medium">Searching...</span>
+                <span className="text-sm font-medium">Procurando...</span>
               </div>
             )}
             
@@ -111,70 +110,21 @@ export const VideoChat: React.FC = () => {
                   {error}
                 </div>
                 
-                {/* Troubleshooting Guide */}
-                <div className="mt-4 p-4 bg-red-500/5 rounded border border-red-500/10">
-                  <h4 className="text-red-300 font-medium mb-2">🔧 Troubleshooting:</h4>
-                  <ol className="text-red-300 text-xs space-y-1 list-decimal list-inside">
-                    <li>Verifique se o servidor está rodando: <code className="bg-red-500/20 px-1 rounded">npm run server</code></li>
-                    <li>Teste a API: <a href="https://server-video-zu9n.onrender.com/api/health" target="_blank" rel="noopener noreferrer" className="underline">https://server-video-zu9n.onrender.com/api/health</a></li>
-                    <li>Para teste em rede: <code className="bg-red-500/20 px-1 rounded">ngrok http 3001</code></li>
-                    <li>Use a URL do ngrok em dispositivos diferentes</li>
-                  </ol>
-                </div>
               </div>
             </div>
           </div>
         )}
 
-        <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Local Video */}
-          <div className="relative">
-            <div className="aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-white/10">
-              <video
-                ref={localVideoRef}
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover"
-              />
-              {!localVideoRef.current?.srcObject && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
-                  <div className="text-center">
-                    <Video className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-400">Sua câmera aparecerá aqui</p>
-                    <p className="text-gray-500 text-xs mt-1">Permita acesso à câmera quando solicitado</p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Local video overlay */}
-              <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1">
-                <span className="text-white text-sm font-medium">Você</span>
-              </div>
-
-              {/* Camera status indicator */}
-              <div className="absolute top-4 right-4">
-                <div className={`p-2 rounded-full ${cameraEnabled ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
-                  {cameraEnabled ? (
-                    <Video className="w-4 h-4 text-green-400" />
-                  ) : (
-                    <VideoOff className="w-4 h-4 text-red-400" />
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Remote Video */}
-          <div className="relative">
-            <div className="aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-white/10">
+        <div className="relative w-full max-w-5xl mx-auto aspect-[9/16] lg:grid lg:grid-cols-2 lg:gap-6 lg:max-w-6xl lg:aspect-auto">
+          {/* Remote Video Container */}
+          <div className="absolute inset-0 z-0 lg:relative">
+            <div className="w-full h-full bg-gray-900 rounded-xl overflow-hidden shadow-2xl border border-white/10">
               <video
                 ref={remoteVideoRef}
                 autoPlay
                 playsInline
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transform -scale-x-100"
               />
-              
               {!remoteVideoRef.current?.srcObject && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
                   <div className="text-center">
@@ -196,7 +146,6 @@ export const VideoChat: React.FC = () => {
                   </div>
                 </div>
               )}
-
               {/* Remote video overlay */}
               {currentPartner && (
                 <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1">
@@ -205,70 +154,106 @@ export const VideoChat: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Controls */}
-        <div className="mt-8 flex items-center justify-center space-x-4">
-          {!isConnected && !isConnecting && !isWaiting ? (
-            <button
-              onClick={handleStartChat}
-              disabled={isLoading || !!error}
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
-            >
-              <Video className="w-5 h-5" />
-              <span>Iniciar Chat Aleatório</span>
-            </button>
-          ) : (isConnecting || isWaiting) ? (
-            <button
-              disabled
-              className="bg-gradient-to-r from-gray-600 to-gray-600 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg cursor-not-allowed"
-            >
-              <Loader2 className="w-5 h-5 animate-spin" />
-              <span>{isWaiting ? 'Procurando...' : 'Conectando...'}</span>
-            </button>
-          ) : (
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={toggleCamera}
-                className={`p-3 rounded-full transition-all duration-200 ${
-                  cameraEnabled
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                    : 'bg-red-600 hover:bg-red-700 text-white'
-                }`}
-                title={cameraEnabled ? 'Desligar câmera' : 'Ligar câmera'}
-              >
-                {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-              </button>
-              
-              <button
-                onClick={toggleMicrophone}
-                className={`p-3 rounded-full transition-all duration-200 ${
-                  micEnabled
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
-                    : 'bg-red-600 hover:bg-red-700 text-white'
-                }`}
-                title={micEnabled ? 'Silenciar microfone' : 'Ativar microfone'}
-              >
-                {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-              </button>
-
-              <button
-                onClick={handleSkipChat}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-full transition-all duration-200 text-sm font-medium"
-                title="Pular para próxima pessoa"
-              >
-                Pular
-              </button>
-              
-              <button
-                onClick={handleEndChat}
-                className="bg-red-600 hover:bg-red-700 text-white p-3 rounded-full transition-all duration-200"
-                title="Encerrar chat"
-              >
-                <PhoneOff className="w-5 h-5" />
-              </button>
+          {/* Local Video Container */}
+          <div className="absolute top-4 right-4 w-1/3 max-w-[150px] z-10 lg:relative lg:top-auto lg:right-auto lg:w-full lg:max-w-none">
+            <div className="aspect-[9/16] lg:aspect-video bg-gray-900 rounded-xl overflow-hidden shadow-2xl border-2 border-indigo-500/50">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover transform -scale-x-100"
+              />
+              {!localVideoRef.current?.srcObject && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
+                  <div className="text-center">
+                    <Video className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-400">Sua câmera aparecerá aqui</p>
+                    <p className="text-gray-500 text-xs mt-1">Permita acesso à câmera quando solicitado</p>
+                  </div>
+                </div>
+              )}
+              {/* Local video overlay */}
+              <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-1">
+                <span className="text-white text-sm font-medium">Você</span>
+              </div>
+              {/* Camera status indicator */}
+              <div className="absolute top-4 right-4">
+                <div className={`p-2 rounded-full ${cameraEnabled ? 'bg-green-500/20' : 'bg-red-500/20'}`}>
+                  {cameraEnabled ? (
+                    <Video className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <VideoOff className="w-4 h-4 text-red-400" />
+                  )}
+                </div>
+              </div>
             </div>
-          )}
+          </div>
+          
+          {/* Controls */}
+          <div className="absolute z-20 bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center space-x-3 lg:relative lg:col-span-2 lg:bottom-auto lg:left-auto lg:translate-x-0 lg:mt-8">
+            {!isConnected && !isConnecting && !isWaiting ? (
+              <button
+                onClick={handleStartChat}
+                disabled={isLoading || !!error}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-600 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
+              >
+                <Video className="w-5 h-5" />
+                <span>Iniciar Chat Aleatório</span>
+              </button>
+            ) : (isConnecting || isWaiting) ? (
+              <button
+                disabled
+                className="bg-gradient-to-r from-gray-600 to-gray-600 text-white px-8 py-3 rounded-full font-medium transition-all duration-200 flex items-center space-x-2 shadow-lg cursor-not-allowed"
+              >
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>{isWaiting ? 'Procurando...' : 'Conectando...'}</span>
+              </button>
+            ) : (
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={toggleCamera}
+                  className={`p-3 rounded-full transition-all duration-200 ${
+                    cameraEnabled
+                      ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white'
+                      : 'bg-red-600/80 hover:bg-red-700/80 text-white'
+                  }`}
+                  title={cameraEnabled ? 'Desligar câmera' : 'Ligar câmera'}
+                >
+                  {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+                </button>
+                
+                <button
+                  onClick={toggleMicrophone}
+                  className={`p-3 rounded-full transition-all duration-200 ${
+                    micEnabled
+                      ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white'
+                      : 'bg-red-600/80 hover:bg-red-700/80 text-white'
+                  }`}
+                  title={micEnabled ? 'Silenciar microfone' : 'Ativar microfone'}
+                >
+                  {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+                </button>
+
+                <button
+                  onClick={handleSkipChat}
+                  className="bg-yellow-600/80 hover:bg-yellow-700/80 text-white px-4 py-2 rounded-full transition-all duration-200 text-sm font-medium"
+                  title="Pular para próxima pessoa"
+                >
+                  Pular
+                </button>
+                
+                <button
+                  onClick={handleEndChat}
+                  className="bg-red-600/80 hover:bg-red-700/80 text-white p-3 rounded-full transition-all duration-200"
+                  title="Encerrar chat"
+                >
+                  <PhoneOff className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Instructions */}
@@ -278,26 +263,9 @@ export const VideoChat: React.FC = () => {
               Clique em "Iniciar Chat Aleatório" para se conectar com alguém novo. Permita acesso à câmera e microfone quando solicitado.
             </p>
             
-            {/* Network Testing Instructions */}
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
-              <h4 className="text-blue-400 font-medium mb-2">🌐 Testando com Múltiplos Dispositivos</h4>
-              <div className="text-blue-300 text-xs space-y-1">
-                <p>1. Build a aplicação: <code className="bg-blue-500/20 px-1 rounded">npm run build</code></p>
-                <p>2. Inicie o servidor: <code className="bg-blue-500/20 px-1 rounded">npm run server</code></p>
-                <p>3. Instale ngrok: <code className="bg-blue-500/20 px-1 rounded">npm install -g ngrok</code></p>
-                <p>4. Crie túnel: <code className="bg-blue-500/20 px-1 rounded">ngrok http 3001</code></p>
-                <p>5. Use a URL do ngrok em dispositivos diferentes para testar</p>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* WebRTC Info */}
-        <div className="mt-6 text-center">
-          <p className="text-gray-400 text-xs">
-            🔒 Conexão peer-to-peer segura usando WebRTC nativo • Sem APIs externas
-          </p>
-        </div>
       </main>
     </div>
   );
