@@ -122,7 +122,8 @@ function findAndCreateMatch(socket, excludedId = null) {
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
-  console.log(`🔌 User connected: ${socket.id}`);
+  const clientOrigin = socket.handshake.headers.origin;
+  console.log(`🔌 New connection attempt: ${socket.id} from ${clientOrigin}`);
 
   // User joins the platform
   socket.on('join-platform', (userData) => {
@@ -276,6 +277,11 @@ app.get('/api/health', (req, res) => {
 
 // Serve React app for all other routes
 app.get('*', (req, res) => {
+  // If the request is for a file (has an extension), return 404
+  const ext = path.extname(req.path);
+  if (ext && ext !== '.html') {
+    return res.status(404).json({ error: 'File not found' });
+  }
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 

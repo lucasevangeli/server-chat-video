@@ -37,16 +37,13 @@ const turnUrl = import.meta.env.VITE_TURN_URL;
 const turnUsername = import.meta.env.VITE_TURN_USERNAME;
 const turnCredential = import.meta.env.VITE_TURN_CREDENTIAL;
 
-if (turnUrl && turnUsername && turnCredential) {
+if (turnUrl && turnUsername && turnCredential && RTC_CONFIG.iceServers) {
   console.log('Found TURN server configuration. Adding to ICE servers.');
   RTC_CONFIG.iceServers.push({
     urls: turnUrl,
     username: turnUsername,
     credential: turnCredential,
   });
-  // The 'relay' policy forces the connection to go through the TURN server.
-  // This is useful for testing the TURN server. For production, 'all' is recommended.
-  // RTC_CONFIG.iceTransportPolicy = 'relay';
 }
 
 // Custom hook for the WebRTC logic
@@ -81,12 +78,12 @@ export const useWebRTC = () => {
     // Vite exposes env variables through import.meta.env
     const envUrl = import.meta.env.VITE_BACKEND_URL;
     if (envUrl) return envUrl;
-    
+
     // In production, if no URL is provided, assume it's the same origin
     if (import.meta.env.PROD) {
       return window.location.origin;
     }
-    
+
     return 'http://localhost:3001';
   };
 
@@ -104,7 +101,7 @@ export const useWebRTC = () => {
       remoteVideoRef.current.srcObject = null;
     }
     roomIdRef.current = null;
-    
+
     // Don't reset waiting state if we are skipping to the next user
     if (!isSkipping) {
       setConnectionState(prev => ({
@@ -176,7 +173,7 @@ export const useWebRTC = () => {
         console.log('📤 Sent WebRTC offer.');
       } catch (error) {
         console.error("Error creating offer:", error);
-        setConnectionState(prev => ({...prev, error: "Failed to create video offer."}))
+        setConnectionState(prev => ({ ...prev, error: "Failed to create video offer." }))
       }
     }
   }, [cleanupConnection]);
@@ -187,12 +184,13 @@ export const useWebRTC = () => {
 
     const backendURL = getBackendURL();
     console.log(`🔌 Connecting to signaling server at ${backendURL}...`);
-    const socket = io(backendURL, { transports: ['websocket'], forceNew: true, reconnectionAttempts: 5 });
+    const socket = io(backendURL, { forceNew: true, reconnectionAttempts: 5 });
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log(`✅ Connected to server with ID: ${socket.id}`);
-      currentUserRef.current = { id: socket.id, name: `User_${socket.id.slice(-4)}` };
+      const socketId = socket.id || 'unknown';
+      console.log(`✅ Connected to server with ID: ${socketId}`);
+      currentUserRef.current = { id: socketId, name: `User_${socketId.slice(-4)}` };
       socket.emit('join-platform', { name: currentUserRef.current.name });
       setConnectionState(prev => ({ ...prev, error: null }));
     });
@@ -244,7 +242,7 @@ export const useWebRTC = () => {
       console.log('📥 Received WebRTC answer.');
       try {
         await peerConnectionRef.current?.setRemoteDescription(new RTCSessionDescription(data.answer));
-      } catch(error) {
+      } catch (error) {
         console.error("Error setting remote answer:", error);
       }
     });
@@ -264,7 +262,7 @@ export const useWebRTC = () => {
       cleanupConnection();
       // Briefly show a message that the partner left
       setConnectionState(prev => ({ ...prev, error: reason }));
-      setTimeout(() => setConnectionState(prev => ({...prev, error: null})), 3000);
+      setTimeout(() => setConnectionState(prev => ({ ...prev, error: null })), 3000);
     };
 
     socket.on('partner-skipped', () => handlePartnerLeft('Partner has skipped.'));
@@ -340,7 +338,7 @@ export const useWebRTC = () => {
         }
         setMediaState(prev => ({ ...prev, isLoading: false, cameraEnabled: true, micEnabled: true }));
         setConnectionState(prev => ({ ...prev, error: null }));
-        
+
         // Now that we have media, connect to the server
         setupSocket();
 
@@ -352,7 +350,7 @@ export const useWebRTC = () => {
     }
 
     start();
-    
+
     return () => {
       console.log('Unmounting component, cleaning up all resources.');
       cleanupConnection();
