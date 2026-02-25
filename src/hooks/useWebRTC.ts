@@ -75,16 +75,14 @@ export const useWebRTC = () => {
 
   // Function to get backend URL based on environment
   const getBackendURL = () => {
-    // Vite exposes env variables through import.meta.env
-    const envUrl = import.meta.env.VITE_BACKEND_URL;
-    if (envUrl) return envUrl;
-
-    // In production, if no URL is provided, assume it's the same origin
-    if (import.meta.env.PROD) {
-      return window.location.origin;
+    // If we are NOT on localhost, we should ALWAYS use the same origin
+    // This avoids port 3001 timeout issues when the app is behind a proxy (Caddy/Cloudflare)
+    if (window.location.hostname !== 'localhost') {
+      return ''; // Empty string tells Socket.IO to use the current origin/protocol automatically
     }
 
-    return 'http://localhost:3001';
+    // On localhost, use the environment variable or default to 3001
+    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
   };
 
   // Cleanup function to reset the entire connection state
