@@ -56,14 +56,12 @@ export const VideoChat: React.FC = () => {
       <header className="bg-black/20 backdrop-blur-sm border-b border-white/10 p-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <Globe className="w-6 h-6 text-white" />
-            </div>
+            <img src="/icon.png" alt="OmeggaChat Icon" className="w-10 h-10 object-contain rounded-lg" />
             <div>
               <h1 className="text-xl font-bold text-white">Omegga Chat</h1>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-4">
             {/* Connection Status */}
             {isConnected && (
@@ -72,14 +70,14 @@ export const VideoChat: React.FC = () => {
                 <span className="text-sm font-medium">Conectado</span>
               </div>
             )}
-            
+
             {isWaiting && (
               <div className="flex items-center space-x-2 text-yellow-400">
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span className="text-sm font-medium">Procurando...</span>
               </div>
             )}
-            
+
             {/* User Count */}
             <div className="flex items-center space-x-1 text-gray-300">
               <Users className="w-4 h-4" />
@@ -109,7 +107,7 @@ export const VideoChat: React.FC = () => {
                 <div className="text-red-300 text-sm leading-relaxed mb-3">
                   {error}
                 </div>
-                
+
               </div>
             </div>
           </div>
@@ -190,7 +188,7 @@ export const VideoChat: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Controls */}
           <div className="absolute z-20 bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center space-x-3 lg:relative lg:col-span-2 lg:bottom-auto lg:left-auto lg:translate-x-0 lg:mt-8">
             {!isConnected && !isConnecting && !isWaiting ? (
@@ -214,23 +212,21 @@ export const VideoChat: React.FC = () => {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={toggleCamera}
-                  className={`p-3 rounded-full transition-all duration-200 ${
-                    cameraEnabled
+                  className={`p-3 rounded-full transition-all duration-200 ${cameraEnabled
                       ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white'
                       : 'bg-red-600/80 hover:bg-red-700/80 text-white'
-                  }`}
+                    }`}
                   title={cameraEnabled ? 'Desligar câmera' : 'Ligar câmera'}
                 >
                   {cameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
                 </button>
-                
+
                 <button
                   onClick={toggleMicrophone}
-                  className={`p-3 rounded-full transition-all duration-200 ${
-                    micEnabled
+                  className={`p-3 rounded-full transition-all duration-200 ${micEnabled
                       ? 'bg-gray-700/80 hover:bg-gray-600/80 text-white'
                       : 'bg-red-600/80 hover:bg-red-700/80 text-white'
-                  }`}
+                    }`}
                   title={micEnabled ? 'Silenciar microfone' : 'Ativar microfone'}
                 >
                   {micEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
@@ -243,7 +239,7 @@ export const VideoChat: React.FC = () => {
                 >
                   Pular
                 </button>
-                
+
                 <button
                   onClick={handleEndChat}
                   className="bg-red-600/80 hover:bg-red-700/80 text-white p-3 rounded-full transition-all duration-200"
@@ -262,7 +258,7 @@ export const VideoChat: React.FC = () => {
             <p className="text-gray-300 text-sm leading-relaxed mb-4">
               Clique em "Iniciar Chat Aleatório" para se conectar com alguém novo. Permita acesso à câmera e microfone quando solicitado.
             </p>
-            
+
           </div>
         )}
 
