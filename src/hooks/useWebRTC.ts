@@ -79,7 +79,15 @@ export const useWebRTC = () => {
   // Function to get backend URL based on environment
   const getBackendURL = () => {
     // Vite exposes env variables through import.meta.env
-    return import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+    const envUrl = import.meta.env.VITE_BACKEND_URL;
+    if (envUrl) return envUrl;
+    
+    // In production, if no URL is provided, assume it's the same origin
+    if (import.meta.env.PROD) {
+      return window.location.origin;
+    }
+    
+    return 'http://localhost:3001';
   };
 
   // Cleanup function to reset the entire connection state

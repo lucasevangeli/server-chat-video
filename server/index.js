@@ -9,10 +9,12 @@ const server = http.createServer(app);
 
 // Define allowed origins for CORS
 const allowedOrigins = [
-  "http://localhost:5173", // Vite dev server
-  "http://localhost:3001", // Server itself
-  /\.ngrok\.io$/,         // ngrok tunnels
-  /\.ngrok-free\.app$/,    // ngrok tunnels
+  "http://localhost:5173",
+  "http://localhost:3001",
+  "https://omeggachat.com",
+  "http://omeggachat.com",
+  /\.ngrok\.io$/,
+  /\.ngrok-free\.app$/,
 ];
 
 // Add client URL(s) from environment variables if they exist
@@ -37,10 +39,32 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+
+    // Check if origin is allowed
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (pattern instanceof RegExp) return pattern.test(origin);
+      return pattern === origin;
+    });
+
+    if (isAllowed || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.warn(`🚫 CORS blocked for origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
+
+// Explicitly block access to .env files to avoid misleading logs
+app.get('/.env*', (req, res) => {
+  res.status(404).json({ error: 'Not Found' });
+});
+
 app.use(express.static(path.join(__dirname, '../dist')));
 
 // Store connected users and rooms
@@ -67,24 +91,24 @@ function findAndCreateMatch(socket, excludedId = null) {
       break;
     }
   }
-  
+
   const partnerUser = partnerId ? connectedUsers.get(partnerId) : null;
 
   if (partnerUser) {
     // Match found
     waitingUsers.delete(partnerId);
-    
+
     const roomId = generateId();
     const room = { id: roomId, users: [currentUser, partnerUser], createdAt: new Date() };
     activeRooms.set(roomId, room);
-    
+
     const partnerSocket = io.sockets.sockets.get(partnerId);
-    
+
     socket.join(roomId);
     partnerSocket?.join(roomId);
-    
+
     console.log(`🎉 Match found! Room ${roomId}: ${currentUser.name} + ${partnerUser.name}`);
-    
+
     // Notify both users with their respective partner's info
     io.to(socket.id).emit('match-found', { roomId, users: room.users, partner: partnerUser });
     io.to(partnerId).emit('match-found', { roomId, users: room.users, partner: currentUser });
@@ -107,10 +131,10 @@ io.on('connection', (socket) => {
       name: userData.name || `User_${socket.id.slice(-6)}`,
       ...userData
     };
-    
+
     connectedUsers.set(socket.id, user);
     console.log(`👤 User joined platform: ${user.name} (${socket.id})`);
-    
+
     socket.emit('platform-joined', { user });
   });
 
@@ -155,7 +179,7 @@ io.on('connection', (socket) => {
   socket.on('skip-chat', (data) => {
     const { roomId } = data;
     const room = activeRooms.get(roomId);
-    
+
     if (!room) {
       // The room is already gone. Maybe the partner skipped at the same time.
       // Just try to find a new match for this user.
@@ -165,9 +189,9 @@ io.on('connection', (socket) => {
     }
 
     console.log(`⏭️ User ${socket.id} skipped chat in room ${roomId}`);
-    
+
     const partner = room.users.find(user => user.id !== socket.id);
-    
+
     // Notify the other user that the chat was skipped
     if (partner) {
       const partnerSocket = io.sockets.sockets.get(partner.id);
@@ -177,14 +201,14 @@ io.on('connection', (socket) => {
         partnerSocket.leave(roomId);
       }
     }
-    
+
     // The skipper leaves the room
     socket.leave(roomId);
-    
+
     // The room is now empty of at least one user, let's clean it up
     activeRooms.delete(roomId);
     console.log(`🗑️ Room ${roomId} deleted`);
-    
+
     // For the user who skipped, immediately try to find a new match,
     // explicitly excluding the partner they just left.
     findAndCreateMatch(socket, partner ? partner.id : null);
@@ -194,16 +218,16 @@ io.on('connection', (socket) => {
   socket.on('end-chat', (data) => {
     const { roomId } = data;
     const room = activeRooms.get(roomId);
-    
+
     if (room) {
       console.log(`🔚 User ${socket.id} ended chat in room ${roomId}`);
-      
+
       // Notify the other user
       socket.to(roomId).emit('partner-ended-chat');
-      
+
       // Leave the room
       socket.leave(roomId);
-      
+
       // Clean up room
       const socketsInRoom = io.sockets.adapter.rooms.get(roomId);
       if (!socketsInRoom || socketsInRoom.size <= 1) {
@@ -216,23 +240,23 @@ io.on('connection', (socket) => {
   // Handle disconnection
   socket.on('disconnect', () => {
     console.log(`🔌 User disconnected: ${socket.id}`);
-    
+
     // Remove from waiting list
     waitingUsers.delete(socket.id);
-    
+
     // Find and clean up any rooms this user was in
     for (const [roomId, room] of activeRooms.entries()) {
       if (room.users.some(user => user.id === socket.id)) {
         // Notify the other user
         socket.to(roomId).emit('partner-disconnected');
-        
+
         // Clean up room
         activeRooms.delete(roomId);
         console.log(`🗑️ Room ${roomId} deleted due to disconnection`);
         break;
       }
     }
-    
+
     // Remove from connected users
     connectedUsers.delete(socket.id);
   });
