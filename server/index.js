@@ -13,6 +13,8 @@ const allowedOrigins = [
   "http://localhost:3001",
   "https://omeggachat.com",
   "http://omeggachat.com",
+  "https://www.omeggachat.com",
+  "http://www.omeggachat.com",
   /\.ngrok\.io$/,
   /\.ngrok-free\.app$/,
 ];
